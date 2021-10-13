@@ -18,17 +18,26 @@ import (
 	- Listener is a blocking process
 */
 
+// Metadata is keys list of files
+type Metadata struct {
+	files []string
+}
+
+func (m *Metadata) Add(path string) {
+	m.files = append(m.files, path)
+}
+
 // LoadTargetDir parses Dir and returns list of all paths inside of Dir
-func LoadTargetDir(target string) ([]string, error) {
-	files := []string{}
+func LoadTargetDir(target string) (*Metadata, error) {
+	metadata := Metadata{}
 	fn := func(path string, d fs.DirEntry, err error) error {
-		files = append(files, path)
+		metadata.Add(path)
 
 		return nil
 	}
 	if err := filepath.WalkDir(target, fn); err != nil {
-		return files, err
+		return nil, err
 	}
 
-	return files, nil
+	return &metadata, nil
 }
