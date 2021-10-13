@@ -22,26 +22,62 @@ import (
 
 const listenInterval = 1000 * time.Millisecond // TODO: extract to config
 
+type File struct {
+	Root    bool
+	Path    string
+	Visited bool
+}
+
 // Metadata is keys list of files.
 type Metadata struct {
-	files  []string
+	files  []*File
 	target string
 }
 
 // Add appends path to files list.
 func (m *Metadata) Add(path string) {
-	m.files = append(m.files, path)
+	m.files = append(m.files, &File{Path: path, Root: m.target == path, Visited: true})
 }
 
 // Includes scans for presence of path in files list.
-func (m *Metadata) Included(path string) bool {
+func (m *Metadata) Includes(path string) bool {
 	for _, file := range m.files {
-		if file == path {
+		if file.Path == path {
 			return true
 		}
 	}
 
 	return false
+}
+
+func (m *Metadata) Visited(path string) {
+	// find and visit with path
+	for _, file := range m.files {
+		if file.Path == path {
+			file.Visited = true
+		}
+	}
+}
+
+func (m *Metadata) RemoveUntouched() error {
+	for i, file := range m.files {
+		if file.Root {
+			continue
+		}
+
+		if !file.Visited {
+			// delete from metadata
+			m.files = append(m.files[:i], m.files[i+1:]...)
+		}
+	}
+
+	return nil
+}
+
+func (m *Metadata) Reset() {
+	for _, file := range m.files {
+		file.Visited = false
+	}
 }
 
 // LoadTargetDir parses Dir and returns list of all paths inside of Dir.
@@ -63,27 +99,42 @@ func LoadTargetDir(target string) (*Metadata, error) {
 func ListenTarget(ctx context.Context, metadata *Metadata) error {
 	checker := time.NewTicker(listenInterval)
 
+	for {
+		select {
+		case <-checker.C:
+			// go and update metadata whenever there is a change in target dir
+			// TODO: after walking is done, time to delete all old directries and files
+			if err := UpdateTargetDir(metadata); err != nil {
+				return err
+			}
+		case <-ctx.Done():
+			return nil
+		}
+	}
+}
+
+func UpdateTargetDir(metadata *Metadata) error {
+	// reset all visit states
+	metadata.Reset()
+
 	// checkFn looks for path in metadata
 	// if path is not present, then add to Metadata
 	checkFn := func(path string, d fs.DirEntry, err error) error {
-		if !metadata.Included(path) {
+		if metadata.Includes(path) {
+			metadata.Visited(path)
+		} else {
 			metadata.Add(path)
 		}
 
 		return nil
 	}
 
-	for {
-		select {
-		case <-checker.C:
-			// it should handle errors & propogate it to upstream
-			if err := filepath.WalkDir(metadata.target, checkFn); err != nil {
-				return err
-			}
-
-			// TODO: after walking is done, time to delete all old directries and files
-		case <-ctx.Done():
-			return nil
-		}
+	// it should handle errors & propogate it to upstream
+	err := filepath.WalkDir(metadata.target, checkFn)
+	if err != nil {
+		return err
 	}
+
+	// after walk, check metadata for unvisited files and delete them
+	return metadata.RemoveUntouched()
 }
