@@ -3,6 +3,7 @@ package fsync
 import (
 	"context"
 	"io/fs"
+	"log"
 	"path/filepath"
 	"time"
 )
@@ -80,6 +81,13 @@ func (m *Metadata) Reset() {
 	}
 }
 
+func (m *Metadata) Inspect() {
+	log.Println("DEBUG: Files being watch at moment:")
+	for _, file := range m.files {
+		log.Printf("DEBUG: path: %s\n, root: %v", file.Path, file.Root)
+	}
+}
+
 // LoadTargetDir parses Dir and returns list of all paths inside of Dir.
 func LoadTargetDir(target string) (*Metadata, error) {
 	metadata := Metadata{target: target}
@@ -107,6 +115,9 @@ func ListenTarget(ctx context.Context, metadata *Metadata) error {
 			if err := UpdateTargetDir(metadata); err != nil {
 				return err
 			}
+
+			// print current state (debugging)
+			metadata.Inspect()
 		case <-ctx.Done():
 			return nil
 		}
