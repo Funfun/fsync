@@ -3,7 +3,6 @@ package fsync
 import (
 	"context"
 	"io/fs"
-	"log"
 	"path/filepath"
 	"time"
 )
@@ -20,6 +19,8 @@ import (
 	- Target is a path (input param)
 	- Listener is a blocking process
 */
+
+const listenInterval = 1000 * time.Millisecond // TODO: extract to config
 
 // Metadata is keys list of files.
 type Metadata struct {
@@ -60,17 +61,15 @@ func LoadTargetDir(target string) (*Metadata, error) {
 
 // ListenTarget checks every N seconds the target directory
 func ListenTarget(ctx context.Context, metadata *Metadata) error {
-	checker := time.NewTicker(1000 * time.Millisecond)
+	checker := time.NewTicker(listenInterval)
 
 	// checkFn looks for path in metadata
 	// if path is not present, then add to Metadata
 	checkFn := func(path string, d fs.DirEntry, err error) error {
-		log.Println("checking path", path)
 		if !metadata.Included(path) {
-			log.Println("adding", path)
 			metadata.Add(path)
 		}
-		log.Println(metadata.files)
+
 		return nil
 	}
 
