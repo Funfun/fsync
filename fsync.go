@@ -3,6 +3,7 @@ package fsync
 import (
 	"context"
 	"io/fs"
+	"log"
 	"path/filepath"
 	"time"
 )
@@ -64,10 +65,12 @@ func ListenTarget(ctx context.Context, metadata *Metadata) error {
 	// checkFn looks for path in metadata
 	// if path is not present, then add to Metadata
 	checkFn := func(path string, d fs.DirEntry, err error) error {
+		log.Println("checking path", path)
 		if !metadata.Included(path) {
+			log.Println("adding", path)
 			metadata.Add(path)
 		}
-
+		log.Println(metadata.files)
 		return nil
 	}
 
