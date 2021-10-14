@@ -118,7 +118,7 @@ func ListenTarget(ctx context.Context, metadata *Metadata) error {
 			}
 
 			// print current state (debugging)
-			metadata.Inspect()
+			// metadata.Inspect()
 		case <-ctx.Done():
 			return nil
 		}
