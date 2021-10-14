@@ -16,7 +16,8 @@ import (
 	4. update metadata config if new changes have appeared
 
 	Entities:
-	- Metadata config is in-memory hash-map, keys are paths, values are dir structures
+	- TODO: Metadata config is in-memory hash-map, keys are paths, values are dir structures
+	- Metadata is a simple fix array for time being
 	- Target is a path (input param)
 	- Listener is a blocking process
 */

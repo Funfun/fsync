@@ -5,7 +5,7 @@ Rsync like dropbox clone
 
 TODO:
 
-- [x] watch direction for changes
+- [x] watch target directory for changes
 - [ ] write server side
 - [ ] sync files to remote server
 - [ ] use Tree structure for watch logic
